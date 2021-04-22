@@ -3,39 +3,46 @@ from PIL import ImageFont
 from PIL import Image
 from PIL import ImageDraw
 import requests
-fontFile = "./helveticaneuelt-arabic-55-roman.ttf"
-imageFile = "/home/jameel/Coding/StationStartupsScreen/StationScreenTest-35.jpg"
-textSize = 170
+descriptionFontFile = "./fonts/helveticaneuelt-arabic-55-roman.ttf"
+infoFontFile = "./fonts/trade-gothic-lt-std-bold-condensed-no-20.otf"
+imageFile = "./StationScreenTest-35.jpg"
+textSize = 160
 infoSize = 150
-descriptionFont = ImageFont.truetype(fontFile, textSize)
-infoFont = ImageFont.truetype(fontFile, infoSize)
+descriptionFont = ImageFont.truetype(descriptionFontFile, textSize)
+infoFont = ImageFont.truetype(infoFontFile, infoSize)
 image = Image.open(imageFile)
-myRequest = requests.get("https://admin.jameel.xyz/stationstartups").json()[15]
-requestText = myRequest['descriptionar']
-requestLogo = Image.open(requests.get(myRequest['logo'], stream=True).raw)
-requestPhone = myRequest['phone']
-requestEmail = myRequest['email']
+draw = ImageDraw.Draw(image)
+
+def getStartupData(index):
+    myRequest = requests.get("https://admin.jameel.xyz/stationstartups").json()[index]
+    global requestText
+    requestText = myRequest['descriptionar']
+    global requestLogo
+    requestLogo = Image.open(requests.get(myRequest['logo'], stream=True).raw)
+    global requestPhone
+    requestPhone = myRequest['phone']
+    global requestEmail
+    requestEmail = myRequest['email']
+
+getStartupData(3)
+
 descriptionText = requestText
-print(len(descriptionText))
 descriptionWidth = 60
 descriptionWrapped = textwrap.wrap(descriptionText, width=descriptionWidth)
 descriptionWrapped = ' '.join(descriptionWrapped)
 descriptionWrapped = descriptionWrapped.replace("         ", " ")
 descriptionWrapped = textwrap.wrap(descriptionWrapped, width=descriptionWidth)
 descriptionWrapped = '\n'.join(descriptionWrapped)
-draw = ImageDraw.Draw(image)
-print(descriptionWrapped)
-if len(descriptionText) < 300:
-    draw.multiline_text((3200, 2300), descriptionWrapped, font=descriptionFont, direction="rtl", align="right", language="ar")
-elif len(descriptionText) > 300 and len(descriptionText) < 400:
-    draw.multiline_text((3000, 2300), descriptionWrapped, font=descriptionFont, direction="rtl", align="right", language="ar")
-elif len(descriptionText) > 400:
-    draw.multiline_text((3000, 2300), descriptionWrapped, font=descriptionFont, direction="rtl", align="right", language="ar")
-    
 
-draw.text((650, 3200), requestPhone, font=infoFont)
+textCoords = draw.multiline_textbbox((3200, 2300), descriptionWrapped, font=descriptionFont, direction="rtl", align="right", language="ar")
 
-draw.text((650, 3540), requestEmail, font=infoFont)
+finalX = 3200 + (7501 - textCoords[-2]) 
+
+draw.multiline_text((finalX, 2300), descriptionWrapped, font=descriptionFont, direction="rtl", align="right", language="ar")
+
+draw.text((650, 3300), requestPhone, font=infoFont)
+draw.text((650, 3640), requestEmail, font=infoFont)
+
 
 basewidth = 1500
 wpercent = (basewidth/float(requestLogo.size[0]))
