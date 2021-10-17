@@ -18,14 +18,30 @@ def readJSONfile():
         return data
 
 
+def extractFacebookID(url):
+        x = re.search("^(?:https?:\/\/)?(?:www\.|m\.|touch\.)?(?:facebook\.com|fb(?:\.me|\.com))\/(?!$)(?:(?:\w)*#!\/)?(?:pages\/)?(?:photo\.php\?fbid=)?(?:[\w\-]*\/)*?(?:\/)?(?:profile\.php\?id=)?([^\/?\s]*)(?:\/|&|\?)?.*$", url)
+        if x: 
+            return x.group(1)
+        else:
+            return None
+    
+def extractInstagramID(url):
+    x = re.search("(?:(?:http|https):\/\/)?(?:www\.)?(?:instagram\.com|instagr\.am)\/([A-Za-z0-9-_\.]+)")
+    if x:
+        return x.group(1)
+    else:
+        return None
+
 def getStartupData(index):
     global startup
     startup = readJSONfile()[index]
     print(startup)
-    global requestText
-    requestText = html2text.html2text((startup.get('description')))
-    global startupLogo
-    startupLogo = Image.open(requests.get(startup['logo'], stream=True).raw)
+    global request_text
+    request_text = html2text.html2text((startup.get('description')))
+    global startup_logo
+    startup_logo = Image.open(requests.get(startup['logo'], stream=True).raw)
+    global logoWidth
+    logoWidth = startup.get('logoWidth')
     global startupLocation
     startupLocation = startup.get('location')
     global startupPhone
@@ -39,21 +55,25 @@ def getStartupData(index):
 
 
 startupQuantity = len(readJSONfile())
+
 for i in range(0, startupQuantity):
     from PIL import ImageFont
     from PIL import Image
     from PIL import ImageDraw
+
     descriptionFontFile = "./fonts/helveticaneuelt-arabic-55-roman.ttf"
     infoFontFile = "./fonts/TradeGothicLTStd.otf"
     imageFile = "./StationScreenTest-35.jpg"
+
     textSize = 160
     infoSize = 140
+
     descriptionFont = ImageFont.truetype(descriptionFontFile, textSize)
     infoFont = ImageFont.truetype(infoFontFile, infoSize)
     image = Image.open(imageFile)
     draw = ImageDraw.Draw(image)
     getStartupData(i)
-    descriptionText = requestText
+    descriptionText = request_text
     descriptionWidth = 60
     descriptionWrapped = textwrap.wrap(descriptionText, width=descriptionWidth)
     descriptionWrapped = ' '.join(descriptionWrapped)
@@ -98,20 +118,6 @@ for i in range(0, startupQuantity):
         thing = [item for item in infoCoordsList if item['id'] == id][0]
         return thing['number']
 
-    def extractFacebookID(url):
-        x = re.search("^(?:https?:\/\/)?(?:www\.|m\.|touch\.)?(?:facebook\.com|fb(?:\.me|\.com))\/(?!$)(?:(?:\w)*#!\/)?(?:pages\/)?(?:photo\.php\?fbid=)?(?:[\w\-]*\/)*?(?:\/)?(?:profile\.php\?id=)?([^\/?\s]*)(?:\/|&|\?)?.*$", url)
-        if x: 
-            return x.group(1)
-        else:
-            return None
-    
-    def extractInstagramID(url):
-        x = re.search("(?:(?:http|https):\/\/)?(?:www\.)?(?:instagram\.com|instagr\.am)\/([A-Za-z0-9-_\.]+)")
-        if x:
-            return x.group(1)
-        else:
-            return None
-
     def has_transparency(img):
         if img.mode == "P":
             transparent = img.info.get("transparency", -1)
@@ -154,15 +160,30 @@ for i in range(0, startupQuantity):
         except:
             pass
     # draw.ellipse((7450, 2200, 7550, 2300), fill = 'blue', outline ='blue')
-    startupLogo = resizeImage(startupLogo, 1500)
-    startupLogoWidth, startupLogoHeight = startupLogo.size
-    logoBox = (5950, 700, 7450, 2200) #x1 y1 x2 y2
-    logoBoxHeight = logoBox[3] - logoBox[1]
-    logoPasteHeight = (730 + int((logoBoxHeight-startupLogoHeight) / 2))
-    if has_transparency(startupLogo):
-        image.paste(startupLogo, (6000, logoPasteHeight), mask=startupLogo)
+    if logoWidth:
+        print("startup width exists!")
+        startup_logo = resizeImage(startup_logo, int(1500*(logoWidth/100)))
     else:
-        image.paste(startupLogo, (6000, logoPasteHeight))
+        startup_logo = resizeImage(startup_logo, 1500)
+
+    startup_logoWidth, startup_logoHeight = startup_logo.size
+
+
+    logoBox = (5950, 700, 7450, 2200) #x1 y1 x2 y2
+
+    logoBoxHeight = logoBox[3] - logoBox[1]
+    logoPasteHeight = (730 + int((logoBoxHeight-startup_logoHeight) / 2))
+
+    if logoWidth:
+        sampleCoord = 5850+(1500-int(1500*(logoWidth/100)))
+        print(sampleCoord)
+    else:
+        sampleCoord = 6000
+
+    if has_transparency(startup_logo):
+        image.paste(startup_logo, (sampleCoord, logoPasteHeight), mask=startup_logo)
+    else:
+        image.paste(startup_logo, (sampleCoord, logoPasteHeight))
     # print(f"./pics/{startup['name']}_output.png")
     image = image.resize((int(image.size[0]/4), int(image.size[1]/4)))
     image.convert('RGBA').save(f"./pics/{startup['name']}_output.png", optimize=True,quality=20)
